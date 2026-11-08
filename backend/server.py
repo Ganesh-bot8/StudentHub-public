@@ -1,87 +1,169 @@
-
 import os
 import re
 import sqlite3
+import uuid
 
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from google import genai
-
-
-# Load environment variables
+from psycopg.errors import UniqueViolation
 load_dotenv()
 
 app = Flask(__name__)
 
-# Secret key for login and guest sessions
-app.secret_key = os.getenv(
-    "FLASK_SECRET_KEY",
-    "development-only-change-this-before-deployment"
+# --------------------------------------------------
+# ENVIRONMENT AND SECURITY
+# --------------------------------------------------
+
+IS_PRODUCTION = (
+    os.getenv("APP_ENV", "").lower() == "production"
+    or os.getenv("RENDER", "").lower() == "true"
 )
 
-# Session security settings
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = False  # Enable True after HTTPS deployment
+SECRET_KEY = os.getenv("FLASK_SECRET_KEY")
 
-# Guest AI message allowance
+if IS_PRODUCTION and not SECRET_KEY:
+    raise RuntimeError("FLASK_SECRET_KEY must be configured in production.")
+
+app.secret_key = SECRET_KEY or "local-development-secret-change-before-deployment"
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SECURE"] = IS_PRODUCTION
+app.config["SESSION_COOKIE_SAMESITE"] = (
+    "None" if IS_PRODUCTION else "Lax"
+)
+app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 60 * 24 * 7
+
 GUEST_MESSAGE_LIMIT = 3
 
+# --------------------------------------------------
+# CORS
+# --------------------------------------------------
 
-# Allow local frontend
+allowed_origins = {
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:5501",
+    "http://localhost:5501",
+}
+
+frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+
+if frontend_url:
+    allowed_origins.add(frontend_url)
 CORS(
     app,
-    origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://127.0.0.1:5501",
-        "http://localhost:5501"
-    ],
+    origins=list(allowed_origins),
     supports_credentials=True
 )
 
 
-# Database location
+# Check request origins on state-changing requests.
+@app.before_request
+def check_request_origin():
+    if request.method in ("POST", "PUT", "PATCH", "DELETE"):
+        origin = request.headers.get("Origin")
+
+        if origin and origin.rstrip("/") not in allowed_origins:
+            return jsonify({"error": "Request origin not allowed."}), 403
+
+
+# --------------------------------------------------
+# DATABASE CONFIGURATION
+# --------------------------------------------------
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE = os.path.join(BASE_DIR, "studenthub.db")
+
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+
+USE_POSTGRES = bool(DATABASE_URL)
+
+if USE_POSTGRES:
+    DATABASE_URL = DATABASE_URL.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
 
 
-# Create database and users table
-def init_database():
-    connection = sqlite3.connect(DATABASE)
+def get_database():
+    if USE_POSTGRES:
+        import psycopg
+        from psycopg.rows import dict_row
 
-    connection.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            full_name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        return psycopg.connect(
+            DATABASE_URL,
+            row_factory=dict_row
         )
-    """)
 
-    connection.commit()
-    connection.close()
+    connection = sqlite3.connect(
+        os.path.join(BASE_DIR, "studenthub.db")
+    )
+
+    connection.row_factory = sqlite3.Row
+
+    return connection
+
+
+# Convert SQLite-style placeholders to PostgreSQL placeholders.
+def execute(connection, query, params=()):
+    if USE_POSTGRES:
+        query = query.replace("?", "%s")
+
+    return connection.execute(query, params)
+
+
+def init_database():
+    connection = get_database()
+
+    try:
+        if USE_POSTGRES:
+            user_id_type = "BIGSERIAL PRIMARY KEY"
+        else:
+            user_id_type = "INTEGER PRIMARY KEY AUTOINCREMENT"
+
+        execute(
+            connection,
+            f"""
+            CREATE TABLE IF NOT EXISTS users (
+                id {user_id_type},
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        execute(
+            connection,
+            """
+            CREATE TABLE IF NOT EXISTS guest_usage (
+                guest_id TEXT PRIMARY KEY,
+                used INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
 
 
 init_database()
 
 
-# Database connection
-def get_database():
-    connection = sqlite3.connect(DATABASE)
-    connection.row_factory = sqlite3.Row
-    return connection
+# --------------------------------------------------
+# GEMINI CONFIGURATION
+# --------------------------------------------------
 
-
-# Gemini API configuration
 api_key = os.getenv("GEMINI_API_KEY")
+
 client = genai.Client(api_key=api_key) if api_key else None
 
-
-# Career Mentor instructions
 SYSTEM_INSTRUCTION = """
 You are Career Mentor, an AI assistant inside Student Hub.
 
@@ -104,16 +186,71 @@ Rules:
 """
 
 
-# Backend health check
+# --------------------------------------------------
+# HELPER FUNCTIONS
+# --------------------------------------------------
+
+def get_guest_id():
+    if "guest_id" not in session:
+        session["guest_id"] = str(uuid.uuid4())
+
+    return session["guest_id"]
+
+
+def get_guest_usage(guest_id):
+    connection = get_database()
+
+    try:
+        result = execute(
+            connection,
+            "SELECT used FROM guest_usage WHERE guest_id = ?",
+            (guest_id,)
+        ).fetchone()
+
+        return result["used"] if result else 0
+
+    finally:
+        connection.close()
+
+
+def increment_guest_usage(guest_id):
+    connection = get_database()
+
+    try:
+        execute(
+            connection,
+            """
+            INSERT INTO guest_usage (guest_id, used)
+            VALUES (?, 1)
+            ON CONFLICT (guest_id)
+            DO UPDATE SET used = guest_usage.used + 1
+            """,
+            (guest_id,)
+        )
+
+        connection.commit()
+
+    finally:
+        connection.close()
+
+
+# --------------------------------------------------
+# HEALTH CHECK
+# --------------------------------------------------
+
 @app.route("/api/health", methods=["GET"])
 def health():
     return jsonify({
         "status": "online",
-        "service": "StudentHub"
+        "service": "StudentHub",
+        "database": "postgresql" if USE_POSTGRES else "sqlite"
     })
 
 
+# --------------------------------------------------
 # REGISTER
+# --------------------------------------------------
+
 @app.route("/api/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
@@ -141,14 +278,9 @@ def register():
             "error": "Enter a valid email address."
         }), 400
 
-    if len(password) < 8:
+    if len(password) < 8 or len(password) > 128:
         return jsonify({
-            "error": "Password must contain at least 8 characters."
-        }), 400
-
-    if len(password) > 128:
-        return jsonify({
-            "error": "Password is too long."
+            "error": "Password must contain between 8 and 128 characters."
         }), 400
 
     hashed_password = generate_password_hash(password)
@@ -156,7 +288,8 @@ def register():
     connection = get_database()
 
     try:
-        connection.execute(
+        execute(
+            connection,
             """
             INSERT INTO users (full_name, email, password)
             VALUES (?, ?, ?)
@@ -170,16 +303,29 @@ def register():
             "message": "Registration successful. You can now log in."
         }), 201
 
-    except sqlite3.IntegrityError:
+    except (sqlite3.IntegrityError, UniqueViolation):
+        connection.rollback()
+
         return jsonify({
             "error": "An account with this email already exists."
         }), 409
+
+    except Exception:
+        connection.rollback()
+        app.logger.exception("Registration error")
+
+        return jsonify({
+            "error": "Registration failed. Please try again."
+        }), 500
 
     finally:
         connection.close()
 
 
+# --------------------------------------------------
 # LOGIN
+# --------------------------------------------------
+
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
@@ -194,12 +340,15 @@ def login():
 
     connection = get_database()
 
-    user = connection.execute(
-        "SELECT * FROM users WHERE email = ?",
-        (email,)
-    ).fetchone()
+    try:
+        user = execute(
+            connection,
+            "SELECT * FROM users WHERE email = ?",
+            (email,)
+        ).fetchone()
 
-    connection.close()
+    finally:
+        connection.close()
 
     if user is None or not check_password_hash(user["password"], password):
         return jsonify({
@@ -207,6 +356,7 @@ def login():
         }), 401
 
     session.clear()
+    session.permanent = True
     session["user_id"] = user["id"]
     session["user_name"] = user["full_name"]
 
@@ -220,7 +370,10 @@ def login():
     })
 
 
+# --------------------------------------------------
 # CHECK CURRENT LOGIN
+# --------------------------------------------------
+
 @app.route("/api/me", methods=["GET"])
 def current_user():
     user_id = session.get("user_id")
@@ -230,12 +383,15 @@ def current_user():
 
     connection = get_database()
 
-    user = connection.execute(
-        "SELECT id, full_name, email FROM users WHERE id = ?",
-        (user_id,)
-    ).fetchone()
+    try:
+        user = execute(
+            connection,
+            "SELECT id, full_name, email FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
 
-    connection.close()
+    finally:
+        connection.close()
 
     if user is None:
         session.clear()
@@ -251,7 +407,10 @@ def current_user():
     })
 
 
+# --------------------------------------------------
 # LOGOUT
+# --------------------------------------------------
+
 @app.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
@@ -261,7 +420,10 @@ def logout():
     })
 
 
+# --------------------------------------------------
 # CHECK AI CHAT USAGE
+# --------------------------------------------------
+
 @app.route("/api/chat-usage", methods=["GET"])
 def chat_usage():
     if session.get("user_id"):
@@ -271,7 +433,8 @@ def chat_usage():
             "remaining": None
         })
 
-    used = session.get("guest_chat_count", 0)
+    guest_id = get_guest_id()
+    used = get_guest_usage(guest_id)
     remaining = max(0, GUEST_MESSAGE_LIMIT - used)
 
     return jsonify({
@@ -283,7 +446,10 @@ def chat_usage():
     })
 
 
+# --------------------------------------------------
 # GEMINI CAREER MENTOR
+# --------------------------------------------------
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
 
@@ -310,11 +476,12 @@ def chat():
             "error": "Message is too long."
         }), 400
 
-    # Check guest message allowance
     logged_in = bool(session.get("user_id"))
+    guest_id = None
 
     if not logged_in:
-        used = session.get("guest_chat_count", 0)
+        guest_id = get_guest_id()
+        used = get_guest_usage(guest_id)
 
         if used >= GUEST_MESSAGE_LIMIT:
             return jsonify({
@@ -338,12 +505,12 @@ def chat():
                 "error": "No response received. Try again."
             }), 502
 
-        # Count only successful guest responses
         remaining = None
 
         if not logged_in:
-            used = session.get("guest_chat_count", 0) + 1
-            session["guest_chat_count"] = used
+            increment_guest_usage(guest_id)
+
+            used = get_guest_usage(guest_id)
             remaining = max(0, GUEST_MESSAGE_LIMIT - used)
 
         return jsonify({
@@ -360,9 +527,13 @@ def chat():
         }), 502
 
 
+# --------------------------------------------------
+# START SERVER
+# --------------------------------------------------
+
 if __name__ == "__main__":
     app.run(
-        host="127.0.0.1",
-        port=5000,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", 5000)),
         debug=False
     )
