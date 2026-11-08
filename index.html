@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>StudentHub | Learning Dashboard</title>
+
+    <meta name="description" content="StudentHub - Your personal learning and career development platform.">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="dashboard">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            Student<span>Hub.</span>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <p class="menu-title">MAIN MENU</p>
+
+            <a href="#" class="nav-link active">▦ Dashboard</a>
+            <a href="#" class="nav-link">⌖ Career Roadmaps</a>
+            <a href="#" class="nav-link">▣ Learn Skills</a>
+            <a href="#" class="nav-link">▤ Projects</a>
+            <a href="#" class="nav-link">⌨ Coding Practice</a>
+            <a href="#" class="nav-link">◇ DSA Preparation</a>
+
+            <p class="menu-title">CAREER PREPARATION</p>
+
+            <a href="#" class="nav-link">▦ Aptitude</a>
+            <a href="#" class="nav-link">♧ Soft Skills</a>
+            <a href="#" class="nav-link">♙ Internships & Jobs</a>
+
+            <p class="menu-title">CAREER TOOLS</p>
+
+            <a href="#" class="nav-link">▤ Resume Builder</a>
+            <a href="#" class="nav-link">◎ Portfolio Builder</a>
+            <a href="#career-mentor" class="nav-link">✧ AI Career Mentor</a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <a href="#" class="nav-link">⚙ Settings</a>
+            <a href="#" class="nav-link">↪ Logout</a>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN CONTENT -->
+    <main class="main">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+
+            <div class="topbar-left">
+
+                <p class="topbar-label">LEARNING DASHBOARD</p>
+
+                <input
+                    class="search"
+                    type="search"
+                    placeholder="Search courses, skills, projects..."
+                    aria-label="Search dashboard"
+                >
+
+            </div>
+
+            <div class="profile">
+
+                <div class="profile-info">
+                    <strong id="topbar-user-name">Guest</strong>
+                    <p id="topbar-account-type">Guest Mode</p>
+                </div>
+
+                <div class="avatar" id="topbar-avatar">G</div>
+
+            </div>
+
+        </header>
+
+
+        <!-- WELCOME -->
+        <section class="welcome">
+
+            <div>
+                <p class="welcome-label">YOUR LEARNING JOURNEY</p>
+
+                <h1 id="welcome-heading">Welcome to StudentHub 👋</h1>
+
+                <p>
+                    Keep learning, keep growing.
+                    Your career journey starts here.
+                </p>
+            </div>
+
+            <div class="welcome-badge">
+                <span>✦</span>
+                Keep progressing
+            </div>
+
+        </section>
+
+
+        <!-- STATISTICS -->
+        <section class="stats">
+
+            <div class="card stat-card">
+
+                <div class="stat-top">
+                    <p class="card-label">Learning Progress</p>
+                    <span class="stat-icon purple">◉</span>
+                </div>
+
+                <h2>68%</h2>
+
+                <div class="mini-progress">
+                    <div style="width:68%"></div>
+                </div>
+
+                <small>Keep going!</small>
+
+            </div>
+
+
+            <div class="card stat-card">
+
+                <div class="stat-top">
+                    <p class="card-label">Courses Completed</p>
+                    <span class="stat-icon blue">▣</span>
+                </div>
+
+                <h2>12</h2>
+
+                <small>3 completed this month</small>
+
+            </div>
+
+
+            <div class="card stat-card">
+
+                <div class="stat-top">
+                    <p class="card-label">Coding Streak</p>
+                    <span class="stat-icon orange">🔥</span>
+                </div>
+
+                <h2>7 Days</h2>
+
+                <small>Great consistency!</small>
+
+            </div>
+
+
+            <div class="card stat-card">
+
+                <div class="stat-top">
+                    <p class="card-label">Projects Built</p>
+                    <span class="stat-icon green">⌘</span>
+                </div>
+
+                <h2>05</h2>
+
+                <small>Keep building!</small>
+
+            </div>
+
+        </section>
+
+
+        <!-- MAIN CONTENT GRID -->
+        <section class="content-grid">
+
+            <!-- LEARNING ROADMAP -->
+            <div class="card roadmap-card">
+
+                <div class="section-heading">
+
+                    <div>
+                        <h3 class="section-title">
+                            My Learning Roadmap
+                        </h3>
+
+                        <p class="section-description">
+                            Track your technical learning progress.
+                        </p>
+                    </div>
+
+                    <span class="section-icon">✦</span>
+
+                </div>
+
+
+                <div class="roadmap-item">
+
+                    <div class="roadmap-top">
+                        <strong>HTML & CSS</strong>
+                        <span>100%</span>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar completed" style="width:100%"></div>
+                    </div>
+
+                    <small class="roadmap-status">Completed</small>
+
+                </div>
+
+
+                <div class="roadmap-item">
+
+                    <div class="roadmap-top">
+                        <strong>JavaScript</strong>
+                        <span>70%</span>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar" style="width:70%"></div>
+                    </div>
+
+                    <small class="roadmap-status">In Progress</small>
+
+                </div>
+
+
+                <div class="roadmap-item">
+
+                    <div class="roadmap-top">
+                        <strong>React.js</strong>
+                        <span>40%</span>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar" style="width:40%"></div>
+                    </div>
+
+                    <small class="roadmap-status">In Progress</small>
+
+                </div>
+
+
+                <div class="roadmap-item">
+
+                    <div class="roadmap-top">
+                        <strong>Node.js</strong>
+                        <span>15%</span>
+                    </div>
+
+                    <div class="progress">
+                        <div class="progress-bar" style="width:15%"></div>
+                    </div>
+
+                    <small class="roadmap-status">Getting Started</small>
+
+                </div>
+
+            </div>
+
+
+            <!-- DAILY CHALLENGE -->
+            <div class="challenge">
+
+                <div class="challenge-icon">⚡</div>
+
+                <p class="challenge-label">DAILY CHALLENGE</p>
+
+                <h3>Become better every day.</h3>
+
+                <p>
+                    Challenge yourself with coding problems.
+                    Improve your logic and become a better programmer.
+                </p>
+
+                <button type="button">
+                    Start Challenge →
+                </button>
+
+                <div class="challenge-decoration">✦</div>
+
+            </div>
+
+        </section>
+
+
+        <!-- SECOND CONTENT GRID -->
+        <section class="content-grid secondary-grid">
+
+            <!-- INTERNSHIPS -->
+            <div class="card">
+
+                <div class="section-heading">
+
+                    <div>
+                        <h3 class="section-title">
+                            Recommended Internships
+                        </h3>
+
+                        <p class="section-description">
+                            Explore opportunities to gain experience.
+                        </p>
+                    </div>
+
+                    <span class="section-icon">↗</span>
+
+                </div>
+
+
+                <div class="opportunity">
+
+                    <div class="company-icon">A</div>
+
+                    <div class="opportunity-info">
+                        <h4>Frontend Developer Intern</h4>
+                        <p>ABC Technologies · Remote</p>
+                    </div>
+
+                    <span class="tag">Internship</span>
+
+                </div>
+
+
+                <div class="opportunity">
+
+                    <div class="company-icon">X</div>
+
+                    <div class="opportunity-info">
+                        <h4>Python Developer Intern</h4>
+                        <p>XYZ Solutions · Hybrid</p>
+                    </div>
+
+                    <span class="tag">Internship</span>
+
+                </div>
+
+
+                <div class="opportunity">
+
+                    <div class="company-icon">T</div>
+
+                    <div class="opportunity-info">
+                        <h4>Web Development Intern</h4>
+                        <p>Tech Company · Remote</p>
+                    </div>
+
+                    <span class="tag">Internship</span>
+
+                </div>
+
+                <p class="demo-note">
+                    Sample opportunities for demonstration.
+                </p>
+
+            </div>
+
+
+            <!-- RECENT ACTIVITY -->
+            <div class="card">
+
+                <div class="section-heading">
+
+                    <div>
+                        <h3 class="section-title">
+                            Recent Activity
+                        </h3>
+
+                        <p class="section-description">
+                            Your recent learning activities.
+                        </p>
+                    </div>
+
+                    <span class="section-icon">◷</span>
+
+                </div>
+
+
+                <div class="activity">
+                    <span class="activity-dot green-dot"></span>
+                    <div>
+                        <strong>Completed HTML Basics</strong>
+                        <p>Learning activity</p>
+                    </div>
+                </div>
+
+
+                <div class="activity">
+                    <span class="activity-dot blue-dot"></span>
+                    <div>
+                        <strong>Solved 5 Array Problems</strong>
+                        <p>Coding practice</p>
+                    </div>
+                </div>
+
+
+                <div class="activity">
+                    <span class="activity-dot purple-dot"></span>
+                    <div>
+                        <strong>Completed Aptitude Test</strong>
+                        <p>Career preparation</p>
+                    </div>
+                </div>
+
+
+                <div class="activity">
+                    <span class="activity-dot orange-dot"></span>
+                    <div>
+                        <strong>Working on Portfolio Project</strong>
+                        <p>Project development</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- FOOTER -->
+        <footer class="footer">
+
+            <p>© 2026 StudentHub. Built for learners.</p>
+
+            <p>Learn · Build · Grow</p>
+
+        </footer>
+
+    </main>
+
+</div>
+
+
+<script src="javascript.js"></script>
+
+</body>
+</html>
