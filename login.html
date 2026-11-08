@@ -148,9 +148,11 @@
                 autocomplete="current-password"
                 required
             >
-            <button type="submit" id="login-button" onclick="document.getElementById('login-form').requestSubmit()">
-    Login
-</button>
+
+            <button type="submit" id="login-button">
+                Login
+            </button>
+
             <p id="message" role="status" aria-live="polite"></p>
 
         </form>
@@ -163,6 +165,8 @@
     </div>
 
     <script>
+        const API_BASE = "https://studenthub-api-ucq9.onrender.com";
+
         const form = document.getElementById("login-form");
         const message = document.getElementById("message");
         const button = document.getElementById("login-button");
@@ -179,7 +183,7 @@
 
             try {
                 const response = await fetch(
-                    "http://127.0.0.1:5000/api/login",
+                    `${API_BASE}/api/login`,
                     {
                         method: "POST",
                         credentials: "include",
@@ -200,15 +204,19 @@
                 }
 
                 message.style.color = "green";
-                message.textContent = "Login successful! Opening StudentHub...";
+                message.textContent =
+                    "Login successful! Opening StudentHub...";
 
                 setTimeout(function() {
                     window.location.href = "index.html";
                 }, 1000);
 
             } catch (error) {
+                console.error("Login error:", error);
+
                 message.style.color = "red";
-                message.textContent = error.message === "Failed to fetch"
+                message.textContent =
+                    error.message === "Failed to fetch"
                     ? "Cannot connect to StudentHub server. Please try again."
                     : error.message;
 

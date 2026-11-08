@@ -194,6 +194,8 @@
     </div>
 
     <script>
+        const API_BASE = "https://studenthub-api-ucq9.onrender.com";
+
         const form = document.getElementById("register-form");
         const message = document.getElementById("message");
         const button = document.getElementById("register-button");
@@ -221,9 +223,10 @@
             try {
 
                 const response = await fetch(
-                    "http://127.0.0.1:5000/api/register",
+                    `${API_BASE}/api/register`,
                     {
                         method: "POST",
+                        credentials: "include",
                         headers: {
                             "Content-Type": "application/json"
                         },
@@ -260,11 +263,13 @@
 
             } catch (error) {
 
+                console.error("Registration error:", error);
+
                 message.style.color = "red";
 
                 message.textContent =
                     error.message === "Failed to fetch"
-                    ? "Cannot connect to StudentHub server. Check whether the backend is running."
+                    ? "Cannot connect to StudentHub server. Please try again."
                     : error.message;
 
             } finally {

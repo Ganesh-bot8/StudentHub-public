@@ -4,8 +4,7 @@
 // ==========================================
 // STUDENTHUB - CONFIGURATION
 // ==========================================
-
-const API_BASE = "http://127.0.0.1:5000";
+const API_BASE = "https://studenthub-api-ucq9.onrender.com";
 
 const navLinks = document.querySelectorAll(".nav-link");
 const mainContent = document.querySelector(".main");
